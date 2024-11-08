@@ -5,7 +5,7 @@ from aiogram.contrib.fsm_storage.memory import MemoryStorage
 
 storage = MemoryStorage()
 
-API_TOKEN = '6250216616:AAHFP2asefqoW5fu3dkHrFW9n4v4c5okKEk'
+API_TOKEN = 'YOUR_API_TOKEN' #TOKEN TELEGRAM BOTS
 bot = Bot(token=API_TOKEN)
 
 dp = Dispatcher(bot, storage=storage)
