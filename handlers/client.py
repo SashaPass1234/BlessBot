@@ -6,8 +6,10 @@ from aiogram.dispatcher.filters import Text
 from data_base import sqlite_db
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
 from keyboards.all_kb import kb_client
+
 global ID4
 ID4 = False
+
 ############################################################# MENU #############################################################
 
 async def start(message: types.Message):
