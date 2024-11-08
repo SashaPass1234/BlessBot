@@ -318,7 +318,7 @@ async def update_sdfsdf(message: types.Message, state):
 	global user_teg
 	if result4:
 		for value in result4:
-			group_id = -1002210462273
+			group_id = ID_GROUP #your id group
 			await bot.send_message(group_id, f'ПОЛЬЗОВАТЕЛЬ @{user_teg} ВЗЯЛ ЛИЧКУ\n\nНазвание: {value[2]}\nРазмер: {value[3]}\nЦена: {quantity3}\nВремя: {quantity5}\nКоличество пар забронировал: {quantity}')
 			await bot.send_message(message.chat.id, f"Вы взяли доставку ✅")
 
