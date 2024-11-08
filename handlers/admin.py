@@ -6,7 +6,6 @@ from aiogram.dispatcher.filters import Text
 from data_base import sqlite_db
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from keyboards.all_kb import kb_admin
-from aiogram import executor
 
 ID3 = False
 product_id = 0
@@ -17,12 +16,14 @@ product_id = 0
 async def autor_admin(message: types.Message):
 	user = message.from_user
 	admin_teg = user.username
-
-	for ret4 in sqlite_db.cur.execute('SELECT admin_id FROM admins').fetchall():
-		if ret4[0] == admin_teg:
-			global ID3
-			ID3 = True
-			await message.answer('Вы успешно авторизовались как админ!', reply_markup=kb_admin)
+	try:
+		for ret4 in sqlite_db.cur.execute('SELECT admin_id FROM admins').fetchall():
+			if ret4[0] == admin_teg:
+				global ID3
+				ID3 = True
+				await message.answer('Вы успешно авторизовались как админ!', reply_markup=kb_admin)
+	except:
+		await message.answer('Ошибка базы данных!!!')
 
 class FSMAdmin1(StatesGroup):
 	admin_id = State()
@@ -41,12 +42,19 @@ async def load_admin_id(message: types.Message, state: FSMContext):
 		await state.finish()
 
 		admins = data['admin_id']
-		sqlite_db.cur.execute('INSERT INTO admins (admin_id) VALUES (?)', (admins, ))
-		sqlite_db.base.commit()
+		try:
+			sqlite_db.cur.execute('INSERT INTO admins (admin_id) VALUES (?)', (admins, ))
+			sqlite_db.base.commit()
+		except:
+			await message.answer('Ошибка базы данных!!!')
 
 async def sql_read(message):
-	for ret3 in sqlite_db.cur.execute('SELECT admin_id FROM admins').fetchall():
-		await bot.send_message(message.from_user.id, f'Админ: {ret3[0]}')
+	try:
+		for ret3 in sqlite_db.cur.execute('SELECT admin_id FROM admins').fetchall():
+			await bot.send_message(message.from_user.id, f'Админ: {ret3[0]}')
+	except:
+		await message.answer('Ошибка базы данных!!!')
+
 
 ############################################################# crossovki #############################################################
 
@@ -107,9 +115,12 @@ async def load_size(message: types.Message, state: FSMContext):
 		name = data['name']
 		size = data['size']
 		quantity = data['quantity']
-		
-		sqlite_db.cur.execute('INSERT INTO crossovki (img, img2, name, size, ids, quantity) VALUES (?, ?, ?, ?, ?, ?)', (photo1, photo2, name, size, product_id, quantity))
-		sqlite_db.base.commit()
+
+		try:
+			sqlite_db.cur.execute('INSERT INTO crossovki (img, img2, name, size, ids, quantity) VALUES (?, ?, ?, ?, ?, ?)', (photo1, photo2, name, size, product_id, quantity))
+			sqlite_db.base.commit()
+		except:
+			await message.answer('Ошибка базы данных!!!')
 
 
 ############################################################# DEL CROSSOVKI #############################################################
@@ -131,24 +142,25 @@ async def delete_write(message: types.Message, state: FSMContext):
 		await state.finish()
 
 		textttt = data['message_delete']
+		try:
+			sqlite_db.cur.execute('SELECT img, img2, name, size, ids, quantity FROM crossovki WHERE ids = ?', (textttt,))
+			result = sqlite_db.cur.fetchmany(7)
 
-		sqlite_db.cur.execute('SELECT img, img2, name, size, ids, quantity FROM crossovki WHERE ids = ?', (textttt,))
-		result = sqlite_db.cur.fetchmany(7)
+			if result:
+				for value in result:
+					keyboard_delete = InlineKeyboardMarkup()
+					keyboard_delete.add(InlineKeyboardButton("Удалить продукт", callback_data=f"delete_{value[4]}"))
+					keyboard_delete.add(InlineKeyboardButton("Изменить название", callback_data=f"names_{value[4]}"))
+					keyboard_delete.add(InlineKeyboardButton("Изменить размер", callback_data=f"sizes_{value[4]}"))
+					keyboard_delete.add(InlineKeyboardButton("Изменить количество", callback_data=f"update_{value[4]}"))
 
-		if result:
-			for value in result:
-				keyboard_delete = InlineKeyboardMarkup()
-				keyboard_delete.add(InlineKeyboardButton("Удалить продукт", callback_data=f"delete_{value[4]}"))
-				keyboard_delete.add(InlineKeyboardButton("Изменить название", callback_data=f"names_{value[4]}"))
-				keyboard_delete.add(InlineKeyboardButton("Изменить размер", callback_data=f"sizes_{value[4]}"))
-				keyboard_delete.add(InlineKeyboardButton("Изменить количество", callback_data=f"update_{value[4]}"))
-
-				await bot.send_photo(message.from_user.id, value[0])
-				await bot.send_photo(message.from_user.id, value[1], f'Название: {value[2]}\nРазмер: {value[3]}\nАйди: {value[4]}\nКоличество пар: {value[5]}', reply_markup=keyboard_delete)
-		else:
-			response = f'Нет указанного айдишника в базе данных.'
-			await message.answer(response)
-
+					await bot.send_photo(message.from_user.id, value[0])
+					await bot.send_photo(message.from_user.id, value[1], f'Название: {value[2]}\nРазмер: {value[3]}\nАйди: {value[4]}\nКоличество пар: {value[5]}', reply_markup=keyboard_delete)
+			else:
+				response = f'Нет указанного айдишника в базе данных.'
+				await message.answer(response)
+		except:
+			await message.answer('Ошибка базы данных!!!')
 ############################################################# SELL CROSSOVKI #############################################################
 
 class FSMAdmin3(StatesGroup):
@@ -168,21 +180,23 @@ async def sell_write(message: types.Message, state: FSMContext):
 	await state.finish()
 
 	textttt = data['message_sell']
+	try:
+		sqlite_db.cur.execute('SELECT img, img2, name, size, ids, quantity FROM crossovki WHERE ids = ?', (textttt,))
+		result = sqlite_db.cur.fetchmany(6)
 
-	sqlite_db.cur.execute('SELECT img, img2, name, size, ids, quantity FROM crossovki WHERE ids = ?', (textttt,))
-	result = sqlite_db.cur.fetchmany(6)
+		if result:
+			for value in result:
+				keyboard_sell = InlineKeyboardMarkup()
+				keyboard_sell.add(InlineKeyboardButton("ЗАБРОНИРОВАТЬ", callback_data=f"sell_{value[4]}"))
 
-	if result:
-		for value in result:
-			keyboard_sell = InlineKeyboardMarkup()
-			keyboard_sell.add(InlineKeyboardButton("ЗАБРОНИРОВАТЬ", callback_data=f"sell_{value[4]}"))
+				await bot.send_photo(message.from_user.id, value[0])
+				await bot.send_photo(message.from_user.id, value[1], f'Название: {value[2]}\nРазмер: {value[3]}\nАйди: {value[4]}\nКоличество пар: {value[5]}', reply_markup=keyboard_sell)
+		else:
+			response = f'Нет указанного айдишника в базе данных.'
+			await message.answer(response)
 
-			await bot.send_photo(message.from_user.id, value[0])
-			await bot.send_photo(message.from_user.id, value[1], f'Название: {value[2]}\nРазмер: {value[3]}\nАйди: {value[4]}\nКоличество пар: {value[5]}', reply_markup=keyboard_sell)
-	else:
-		response = f'Нет указанного айдишника в базе данных.'
-		await message.answer(response)
-
+	except:
+		await message.answer('Ошибка базы данных!!!')
 
 ############################################################# SETCOUNT CROSSOVKI #############################################################
 
@@ -209,8 +223,12 @@ async def process_callback(callback_query: types.CallbackQuery):
 	set_ids = data[1]
 	
 	if data[0] == "delete":
-		sqlite_db.cur.execute("DELETE FROM crossovki WHERE ids=?", (data[1],))
-		sqlite_db.base.commit()
+		try:
+			sqlite_db.cur.execute("DELETE FROM crossovki WHERE ids=?", (data[1],))
+			sqlite_db.base.commit()
+		except:
+			await bot.send_message(callback_query.message.chat.id, "Ошибка базы данных!!!")
+
 		await bot.send_message(callback_query.message.chat.id, "Продукт удалён из базы данных!")
 
 	elif data[0] == "update":
@@ -230,20 +248,22 @@ async def process_callback(callback_query: types.CallbackQuery):
 
 
 	elif data[0] == "sell":
-		sqlite_db.cur.execute('SELECT img, img2, name, size, ids, quantity FROM crossovki WHERE ids = ?', (data[1],))
-		global result4 
-		result4 = sqlite_db.cur.fetchmany(6)
-		if result4:
-			for value in result4:
-				global quantity2
-				quantity2 = int(value[5])
-				
-				await bot.send_message(callback_query.message.chat.id, "Введи количество пар которые вы хотите забронировать:")
-				await SetCount.waiting4.set()
-		else:
-			response = f'Продукт с этим айдишником имеет бронь!❌'
-			await bot.send_message(callback_query.message.chat.id, response)
+		try:
+			sqlite_db.cur.execute('SELECT img, img2, name, size, ids, quantity FROM crossovki WHERE ids = ?', (data[1],))
+			global result4
+			result4 = sqlite_db.cur.fetchmany(6)
+			if result4:
+				for value in result4:
+					global quantity2
+					quantity2 = int(value[5])
 
+					await bot.send_message(callback_query.message.chat.id, "Введи количество пар которые вы хотите забронировать:")
+					await SetCount.waiting4.set()
+			else:
+				response = f'Продукт с этим айдишником имеет бронь!❌'
+				await bot.send_message(callback_query.message.chat.id, response)
+		except:
+			await bot.send_message(callback_query.message.chat.id, "Продукт удалён из базы данных!")
 
 @dp.message_handler(state=SetCount.waiting4)
 async def update_size(message: types.Message, state):
@@ -254,8 +274,11 @@ async def update_size(message: types.Message, state):
 	global quantity2
 	quantity2 -=quantity
 
-	sqlite_db.cur.execute("UPDATE crossovki SET quantity=? WHERE ids=?", (quantity2, set_ids))
-	sqlite_db.base.commit()
+	try:
+		sqlite_db.cur.execute("UPDATE crossovki SET quantity=? WHERE ids=?", (quantity2, set_ids))
+		sqlite_db.base.commit()
+	except:
+		await message.answer("Продукт удалён из базы данных!")
 
 	await state.finish()
 	await bot.send_message(message.chat.id, "Введи цену:")
@@ -354,8 +377,12 @@ async def update_sdfsdf(message: types.Message, state):
 async def update_quantity(message: types.Message, state):
 	global set_ids
 	quantity = message.text
-	sqlite_db.cur.execute("UPDATE crossovki SET quantity=? WHERE ids=?", (quantity, set_ids))
-	sqlite_db.base.commit()
+	try:
+		sqlite_db.cur.execute("UPDATE crossovki SET quantity=? WHERE ids=?", (quantity, set_ids))
+		sqlite_db.base.commit()
+	except:
+		await message.answer("Продукт удалён из базы данных!")
+
 	await state.finish()
 	await bot.send_message(message.chat.id, "Успешно изменнено.")
 
@@ -372,8 +399,12 @@ async def update_name(message: types.Message, state):
 async def update_size(message: types.Message, state):
 	global set_ids
 	quantity = message.text
-	sqlite_db.cur.execute("UPDATE crossovki SET size=? WHERE ids=?", (quantity, set_ids))
-	sqlite_db.base.commit()
+	try:
+		sqlite_db.cur.execute("UPDATE crossovki SET size=? WHERE ids=?", (quantity, set_ids))
+		sqlite_db.base.commit()
+	except:
+		await message.answer( "Продукт удалён из базы данных!")
+
 	await state.finish()
 	await bot.send_message(message.chat.id, "Успешно изменнено.")
 
